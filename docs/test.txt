@@ -1,0 +1,5 @@
+# MCP File Read Test
+Hello from my MCP Server!
+This file was successfully read by the AI agent.
+Tool: file_read
+Status: Working correctly
