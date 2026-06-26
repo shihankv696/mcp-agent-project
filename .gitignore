@@ -20,4 +20,4 @@ Thumbs.db
 
 
 *.log
-logs/
+logs/ 

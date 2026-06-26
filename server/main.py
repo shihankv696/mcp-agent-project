@@ -10,45 +10,26 @@ STEP 7: Run the server
 STEP 8: STOP
 '''
 
-import config
 import asyncio
 import logging
 import sys
+import os
+sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mcp.server import Server
+from mcp import types
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 from pathlib import Path
+from tools.file_reader import file_read
+from server import config
+from tools import directory_lister
+from server.logger import get_logger
 
 
-# ── Logging Setup (ONE place only) ───────────
-def setup_logging():
-    logger = logging.getLogger()         # root logger
-    logger.setLevel(logging.INFO)
-
-    # File handler → uses LOG_FILE from config
-    file_handler = logging.FileHandler(config.LOG_FILE)
-    file_handler.setLevel(logging.INFO)
-
-    # stderr handler → safe for MCP (not stdout)
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.INFO)
-
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(formatter)
-    stderr_handler.setFormatter(formatter)
-
-    logger.addHandler(file_handler)
-    logger.addHandler(stderr_handler)
-
-    return logging.getLogger(__name__)
-
-
-# Setup logging FIRST before anything else
-logger = setup_logging()
+logger = get_logger(__name__) 
 
 # Now safe to log - happens after MCP transport ready
 # DO NOT log anything here at module level
-
 
 # ── Server Initialization ─────────────────────
 mcp = Server(
@@ -63,18 +44,41 @@ mcp = Server(
 async def handle_list_tools():
     logger.info("Tool list requested")
     return [
-        Tool(
+        types.Tool(
             name="file_read",
-            description="Reads and returns the complete text content of a file from the local filesystem. Use this when you need to read any text file.",
+            description=(
+                "Reads the contents of a text file from the file system. "
+                "Use this when you need to see what is inside a file. "
+                "Only works on text-based files within allowed directories."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "path": {
+                    "file_path": {
                         "type": "string",
-                        "description": "The full path to the file to read"
+                        "description": "The path to the file to read"
                     }
                 },
-                "required": ["path"]
+                "required": ["file_path"]
+            }
+        ),
+        types.Tool(
+            name="list_directory",
+            description=(
+                "Lists all files and subdirectories within a given"
+                "directory. Returns name, type, size, and last modified"
+                "date for each item. Use this before reading files to"
+                "discover what files exist in a folder."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "directory_path": {
+                        "type": "string",
+                        "description": "The path to the directory you want to list"
+                    }
+                },
+                "required": ["directory_path"]
             }
         )
     ]
@@ -87,61 +91,16 @@ async def handle_call_tools(name: str, arguments: dict):
     logger.info(f"Arguments received: {arguments}")
 
     if name == "file_read":
-        path_string = arguments.get("path")
+        result = await file_read(arguments.get("file_path", ""))
+        return [types.TextContent(type="text", text=str(result))]
 
-        if not path_string:
-            return [TextContent(type="text", text="Error: Missing required argument 'path'.")]
-
-        try:
-            # Resolve to absolute path (no try/except needed here)
-            path = Path(path_string).resolve()
-
-            # Security check
-            is_allowed = any(
-                Path(allowed_dir).resolve() in path.parents
-                for allowed_dir in config.ALLOWED_DIRECTORIES
-            )
-
-            if not is_allowed:
-                logger.warning(f"Access denied for path: {path}")
-                return [TextContent(type="text", text=f"Error: Access denied: {path} is outside allowed directories")]
-
-            # Existence check
-            if not path.exists():
-                logger.info(f"File does not exist: {path}")
-                return [TextContent(type="text", text=f"Error: File does not exist: {path}")]
-
-            # File type check
-            if not path.is_file():
-                return [TextContent(type="text", text=f"Error: {path} is not a file.")]
-
-            # Size check
-            if path.stat().st_size > config.MAX_FILE_SIZE:
-                logger.info(f"File too large: {path}")
-                return [TextContent(type="text", text=f"Error: File too large. Max allowed: {config.MAX_FILE_SIZE} bytes.")]
-
-            # Read file
-            with open(path, 'r', encoding="utf-8") as f:
-                content = f.read()
-
-            logger.info(f"File successfully read: {path}")
-            return [TextContent(type="text", text=content)]
-
-        except PermissionError as e:
-            logger.error(f"Permission denied: {e}")
-            return [TextContent(type="text", text=f"Error: Permission denied: {e}")]
-
-        except UnicodeDecodeError as e:
-            logger.error(f"Cannot read as text: {e}")
-            return [TextContent(type="text", text=f"Error: File is not readable as plain text.")]
-
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}", exc_info=True)
-            return [TextContent(type="text", text=f"Error: {e}")]
-
+    elif name == "list_directory":
+        result = await directory_lister.list_directory(arguments.get("directory_path", "")) 
+        return [types.TextContent(type="text", text=str(result))]
+    
     else:
         logger.warning(f"Unknown tool: {name}")
-        return [TextContent(type="text", text=f"Error: Tool '{name}' is not supported.")]
+        return [TextContent(type="text", text=f"Error: Tool '{name}' is Unkown.")]
 
 
 # ── Main Entry Point ──────────────────────────

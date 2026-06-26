@@ -31,6 +31,7 @@ INSTRUCTIONS: str = os.getenv("INSTRUCTIONS", "MCP Server for AI Agent")
 MAX_FILE_SIZE: int = 1 * 1024 * 1024    # 1 MB in bytes
 MAX_RESULTS: int = 50
 MAX_PATH_LENGTH: int = 260
+MAX_DIRECTORY_ENTRIES = 100
 
 # ── Timeout Settings ──────────────────────────
 TOOL_TIMEOUT: int = 20      # seconds
@@ -54,6 +55,7 @@ ALLOWED_DIRECTORIES: list[Path] = [
     PROJECT_ROOT / "docs",
     PROJECT_ROOT / "data",
     PROJECT_ROOT / "resources",
+    PROJECT_ROOT / "tests"
 ]
 
 # Auto-create allowed directories if missing
@@ -77,3 +79,4 @@ def get_config_summary() -> dict:
         "allowed_directories": [str(d) for d in ALLOWED_DIRECTORIES],
         "log_file": LOG_FILE,
     }
+
