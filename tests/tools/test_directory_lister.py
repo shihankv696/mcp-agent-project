@@ -24,9 +24,16 @@ import json
 import os
 import sys
 
-project_root = os.path.dirname(os.path.dirname(__file__))
-
-# Add project root to Python's search path
+# Fix — go up THREE levels to reach project root
+# __file__ = tests/tools/test_directory_lister.py
+# parent 1 = tests/tools/
+# parent 2 = tests/
+# parent 3 = mcp-agent-project/  ← project root
+project_root = os.path.dirname(
+    os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+)
 sys.path.insert(0, project_root)
 
 from pathlib import Path
@@ -38,7 +45,7 @@ from server.logger import get_logger
 # no matter where you run the test from.
 # It adds your project root folder to Python's search path.
 # ─────────────────────────────────────────────────────────────
-project_root = Path(__file__).resolve().parent.parent
+project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from tools.directory_lister import list_directory
