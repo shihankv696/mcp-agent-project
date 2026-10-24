@@ -1,14 +1,3 @@
-'''
-ALGORITHM
-STEP 1: START
-STEP 2: Load environment variables
-STEP 3: Define server identity
-STEP 4: Define timeout limits
-STEP 5: Define path configuration
-STEP 6: Validate critical settings
-STEP 7: STOP
-'''
-
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -32,6 +21,14 @@ MAX_FILE_SIZE: int = 1 * 1024 * 1024    # 1 MB in bytes
 MAX_RESULTS: int = 50
 MAX_PATH_LENGTH: int = 260
 MAX_DIRECTORY_ENTRIES = 100
+
+# ── Excluded Extensions & Hidden files ────────────
+EXCLUDED_EXTENSIONS: list = [".pyc", ".log", ".tmp"]
+EXCLUDED_DIRECTORIES: list = ["__pycache__", ".git", "mcp-env", ".pytest_cache"]
+EXCLUDE_HIDDEN_FILES = True
+
+# ──  Search & Result Limits ────────────────────
+MAX_SEARCH_RESULT = 50
 
 # ── Timeout Settings ──────────────────────────
 TOOL_TIMEOUT: int = 20      # seconds

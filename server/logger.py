@@ -13,7 +13,6 @@ import logging
 import logging.handlers
 from server import config
 
-
 def get_logger(name: str) -> logging.Logger:
     """
     Returns a configured logger for the given module name.
